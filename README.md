@@ -1,4 +1,5 @@
 The goal of this project is to analyze data from Goodreads (https://www.goodreads.com/), with a focus on books of the Fantasy genre. I will aim to retrieve insights such as:
+
 - Are specific sub-genres (epic, dark, romance) rated higher?
 - Does publication year affect ratings?
 - Do longer fantasy books get higher ratings?
