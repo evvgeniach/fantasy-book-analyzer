@@ -15,27 +15,28 @@ Using a dataset of **11,127 books** from [Kaggle](https://www.kaggle.com/dataset
 ## Key Findings
 
 - **Genre popularity negatively correlates with ratings** (Spearman rho = -0.47, p = 0.001) — niche genres like Graphic Novels score higher due to smaller, more dedicated audiences.
-- **Book length is the strongest predictor** of popularity (46.8% feature importance), followed by publisher (35.0%).
+- **Book length and publisher are the strongest predictors** of popularity (35.3% and 32.9% feature importance respectively).
 - **Ratings are left-skewed**, peaking around 4.0, suggesting Goodreads users tend to rate books they enjoyed.
-- **Language has minimal impact** — average ratings across 27 languages fall in a narrow 3.9–4.5 band.
+- **Language has minimal impact on ratings** — average ratings across 27 languages fall in a narrow 3.9–4.5 band.
+- **Popularity and quality are largely independent** — `average_rating` is barely correlated with any numeric feature.
 
 ## Machine Learning Model
 
-A **Random Forest Regressor** was trained to predict `ratings_count` (a proxy for popularity) using:
+A **Random Forest Regressor** was trained to predict `ratings_count` (a proxy for popularity). The target was log-transformed (`log1p`) to reduce the influence of extreme outliers before training.
 
 | Feature | Importance |
 |---|---|
-| Number of pages | 46.8% |
-| Publisher | 35.0% |
-| Publication year | 13.2% |
-| Genre | 4.5% |
-| Language | 0.6% |
+| Number of pages | 35.3% |
+| Publisher | 32.9% |
+| Publication year | 16.5% |
+| Language | 11.9% |
+| Genre | 3.5% |
 
-**Model performance (nested cross-validation):**
-- R² = 0.7677 ± 0.0184
-- RMSE = 60,863 ± 3,876
+**Model performance:**
+- Single train/test split R² = 0.9193 (log scale)
+- Nested cross-validation R² = 0.7806 ± 0.0059 (log scale) — a more reliable generalisation estimate
 
-A baseline linear regression achieved R² = 0.004, confirming the non-linear nature of the problem.
+A baseline linear regression achieved R² = 0.0705, confirming the non-linear nature of the problem.
 
 ## Project Structure
 
