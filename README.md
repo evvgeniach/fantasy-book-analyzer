@@ -1,6 +1,10 @@
 # Fantasy Book Popularity Analyzer
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fantasy-book-analyzer.streamlit.app/)
+
 A data science project that analyzes Goodreads book data to uncover what makes a fantasy book popular, and builds a machine learning model to predict book popularity.
+
+🚀 **[Try the live app here](https://fantasy-book-analyzer.streamlit.app/)**
 
 ## Project Overview
 
@@ -38,11 +42,20 @@ A **Random Forest Regressor** was trained to predict `ratings_count` (a proxy fo
 
 A baseline linear regression achieved R² = 0.0705, confirming the non-linear nature of the problem.
 
+## Deployment
+
+The model is deployed as an interactive web app on Streamlit Community Cloud.
+
+👉 [https://fantasy-book-analyzer.streamlit.app/](https://fantasy-book-analyzer.streamlit.app/)
+
+The app trains the model at startup directly from the dataset — no pre-saved model files required. Users can input book features (pages, year, publisher, language) and receive an instant popularity prediction.
+
 ## Project Structure
 
 ```
 fantasy-book-analyzer/
 ├── Book popularity predictor.ipynb   # Main analysis notebook
+├── app.py                            # Streamlit web app
 ├── data/
 │   └── Goodreads_books_with_genres.csv
 ├── requirements.txt
