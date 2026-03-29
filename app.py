@@ -4,6 +4,20 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 
+st.set_page_config(
+    page_title="Fantasy Book Popularity Predictor",
+    page_icon="📚",
+    layout="centered"
+)
+
+LANG_MAP = {
+    'ale': 'Aleut', 'eng': 'English', 'en-US': 'English', 'en-GB': 'English',
+    'en-CA': 'English', 'fre': 'French', 'ger': 'German', 'gla': 'Scottish Gaelic',
+    'grc': 'Greek', 'ita': 'Italian', 'jpn': 'Japanese', 'lat': 'Latin',
+    'mul': 'Multiple Languages', 'por': 'Portuguese', 'rus': 'Russian',
+    'spa': 'Spanish', 'tur': 'Turkish', 'zho': 'Chinese'
+}
+
 
 @st.cache_resource
 def train_model():
@@ -52,55 +66,96 @@ def train_model():
     )
     model.fit(X, y)
 
-    return model, enc_genre, enc_pub, enc_lang
+    return model, enc_genre, enc_pub, enc_lang, books_filtered
 
 
-with st.spinner("Loading model (this may take a minute on first run)..."):
-    model, encoder_genre, encoder_publisher, encoder_language = train_model()
+with st.spinner("Training model on first run, please wait..."):
+    model, encoder_genre, encoder_publisher, encoder_language, books_filtered = train_model()
 
-st.title("Fantasy Book Popularity Predictor")
+# Build language display options (label -> code)
+unique_codes = sorted(encoder_language.classes_)
+lang_options = {}
+for code in unique_codes:
+    label = LANG_MAP.get(code, code)
+    # Avoid duplicate display names overwriting each other
+    if label not in lang_options:
+        lang_options[label] = code
+lang_display = sorted(lang_options.keys())
+
+# --- Header ---
+st.markdown("# 📚 Fantasy Book Popularity Predictor")
 st.markdown(
-    "Enter the details of a book below to predict how many Goodreads ratings it is likely to receive."
+    "Predict how many Goodreads ratings a fantasy book is likely to receive, "
+    "based on its length, publisher, publication year, and language."
 )
+st.markdown("---")
 
-st.header("Book Details")
+# --- Input form ---
+st.markdown("### 📝 Book Details")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    num_pages = st.number_input("Number of Pages", min_value=1, max_value=5000, value=350)
-    year = st.number_input("Publication Year", min_value=1900, max_value=2025, value=2010)
+    num_pages = st.number_input("📄 Number of Pages", min_value=1, max_value=5000, value=350,
+                                help="Total number of pages in the book")
+    year = st.number_input("📅 Publication Year", min_value=1900, max_value=2025, value=2010,
+                           help="Year the book was first published")
 
 with col2:
-    language = st.selectbox("Language", sorted(encoder_language.classes_))
-    publisher = st.selectbox("Publisher", sorted(encoder_publisher.classes_))
+    lang_label = st.selectbox("🌍 Language", lang_display,
+                              index=lang_display.index("English") if "English" in lang_display else 0)
+    publisher = st.selectbox("🏢 Publisher", sorted(encoder_publisher.classes_),
+                             help="Select the book's publisher")
 
-genre = encoder_genre.transform(["Fantasy"])[0]
+st.markdown("")
 
-if st.button("Predict Popularity"):
+# --- Predict ---
+if st.button("🔮 Predict Popularity", use_container_width=True):
+
+    genre_enc = encoder_genre.transform(["Fantasy"])[0]
+    lang_code = lang_options[lang_label]
+    language_enc = encoder_language.transform([lang_code])[0]
     publisher_enc = encoder_publisher.transform([publisher])[0]
-    language_enc = encoder_language.transform([language])[0]
 
     X_input = pd.DataFrame(
-        [[num_pages, year, genre, publisher_enc, language_enc]],
+        [[num_pages, year, genre_enc, publisher_enc, language_enc]],
         columns=['num_pages', 'year', 'genre', 'publisher', 'language_code']
     )
 
     pred = int(np.expm1(model.predict(X_input)[0]))
 
     st.markdown("---")
-    st.subheader("Predicted Ratings Count")
-    st.metric(label="Estimated number of Goodreads ratings", value=f"{pred:,}")
+    st.markdown("### 📊 Prediction Result")
+    st.metric(label="Estimated Goodreads Ratings", value=f"{pred:,}")
 
     if pred < 1000:
-        st.info("This book is predicted to have a niche audience.")
+        st.info("🔍 Niche audience — likely to appeal to dedicated fantasy fans.")
     elif pred < 10000:
-        st.success("This book is predicted to have a moderate audience.")
+        st.success("📖 Moderate audience — solid readership expected.")
     elif pred < 100000:
-        st.success("This book is predicted to be quite popular!")
+        st.success("⭐ Popular book — strong readership predicted!")
     else:
         st.balloons()
-        st.success("This book is predicted to be a bestseller!")
+        st.success("🏆 Bestseller territory — exceptional popularity predicted!")
 
+# --- About section ---
 st.markdown("---")
-st.caption("Model: Random Forest Regressor trained on 11,127 Goodreads books. Target was log-transformed before training.")
+with st.expander("ℹ️ About this model"):
+    st.markdown("""
+    This app uses a **Random Forest Regressor** trained on 11,127 Goodreads books.
+
+    **Features used:**
+    - Number of pages
+    - Publication year
+    - Publisher
+    - Language
+    - Genre (fixed to Fantasy)
+
+    **Model performance (nested cross-validation):**
+    - R² = 0.7806 ± 0.0059 (log scale)
+
+    **Top predictors:** number of pages (35.3%) and publisher (32.9%).
+
+    The target variable (`ratings_count`) was log-transformed before training to reduce the influence of outliers.
+    Predictions are back-transformed for display.
+    """)
