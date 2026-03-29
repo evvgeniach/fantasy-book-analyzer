@@ -1,19 +1,19 @@
-# Fantasy Book Popularity Analyzer
+# Book Popularity Predictor
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fantasy-book-analyzer.streamlit.app/)
 
-A data science project that analyzes Goodreads book data to uncover what makes a fantasy book popular, and builds a machine learning model to predict book popularity.
+A data science project that analyzes Goodreads book data to uncover what makes a book popular, and builds a machine learning model to predict book popularity across genres.
 
 🚀 **[Try the live app here](https://fantasy-book-analyzer.streamlit.app/)**
 
 ## Project Overview
 
-Using a dataset of **11,127 books** from [Kaggle](https://www.kaggle.com/datasets/middlelight/goodreadsbookswithgenres), this project explores the fantasy genre through exploratory data analysis (EDA) and predictive modeling.
+Using a dataset of **11,127 books** from [Kaggle](https://www.kaggle.com/datasets/middlelight/goodreadsbookswithgenres), this project explores book popularity through exploratory data analysis (EDA) and predictive modeling, with a focus on the fantasy genre during EDA.
 
 **Key questions explored:**
 - Are specific sub-genres (epic, dark, romance) rated higher?
 - Does publication year affect ratings?
-- Do longer fantasy books get higher ratings?
+- Do longer books get higher ratings?
 - Is there a relationship between genre popularity and average ratings?
 
 ## Key Findings
@@ -21,12 +21,12 @@ Using a dataset of **11,127 books** from [Kaggle](https://www.kaggle.com/dataset
 - **Genre popularity negatively correlates with ratings** (Spearman rho = -0.47, p = 0.001) — niche genres like Graphic Novels score higher due to smaller, more dedicated audiences.
 - **Book length and publisher are the strongest predictors** of popularity (35.3% and 32.9% feature importance respectively).
 - **Ratings are left-skewed**, peaking around 4.0, suggesting Goodreads users tend to rate books they enjoyed.
-- **Language has minimal impact on ratings** — average ratings across 27 languages fall in a narrow 3.9–4.5 band.
+- **Language has minimal impact on ratings** — average ratings across 27 languages fall in a narrow 3.9-4.5 band.
 - **Popularity and quality are largely independent** — `average_rating` is barely correlated with any numeric feature.
 
 ## Machine Learning Model
 
-A **Random Forest Regressor** was trained to predict `ratings_count` (a proxy for popularity). The target was log-transformed (`log1p`) to reduce the influence of extreme outliers before training.
+A **Random Forest Regressor** was trained to predict `ratings_count` (a proxy for popularity) across all genres. The target was log-transformed (`log1p`) to reduce the influence of extreme outliers before training.
 
 | Feature | Importance |
 |---|---|
@@ -48,7 +48,7 @@ The model is deployed as an interactive web app on Streamlit Community Cloud.
 
 👉 [https://fantasy-book-analyzer.streamlit.app/](https://fantasy-book-analyzer.streamlit.app/)
 
-The app trains the model at startup directly from the dataset — no pre-saved model files required. Users can input book features (pages, year, publisher, language) and receive an instant popularity prediction.
+The app trains the model at startup directly from the dataset — no pre-saved model files required. Users can select a genre, enter book details (pages, year, publisher, language) and receive an instant popularity prediction.
 
 ## Project Structure
 
@@ -72,6 +72,10 @@ fantasy-book-analyzer/
 3. Open the notebook:
    ```bash
    jupyter notebook "Book popularity predictor.ipynb"
+   ```
+4. Run the app locally:
+   ```bash
+   streamlit run app.py
    ```
 
 ## Dataset

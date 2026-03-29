@@ -5,17 +5,48 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 
 st.set_page_config(
-    page_title="Fantasy Book Popularity Predictor",
+    page_title="Book Popularity Predictor",
     page_icon="📚",
     layout="centered"
 )
 
 LANG_MAP = {
-    'ale': 'Aleut', 'eng': 'English', 'en-US': 'English', 'en-GB': 'English',
-    'en-CA': 'English', 'fre': 'French', 'ger': 'German', 'gla': 'Scottish Gaelic',
-    'grc': 'Greek', 'ita': 'Italian', 'jpn': 'Japanese', 'lat': 'Latin',
-    'mul': 'Multiple Languages', 'por': 'Portuguese', 'rus': 'Russian',
-    'spa': 'Spanish', 'tur': 'Turkish', 'zho': 'Chinese'
+    'ale':   'Aleut',
+    'ara':   'Arabic',
+    'en-CA': 'English',
+    'en-GB': 'English',
+    'en-US': 'English',
+    'eng':   'English',
+    'enm':   'Middle English',
+    'fre':   'French',
+    'ger':   'German',
+    'gla':   'Scottish Gaelic',
+    'glg':   'Galician',
+    'grc':   'Greek',
+    'ita':   'Italian',
+    'jpn':   'Japanese',
+    'lat':   'Latin',
+    'msa':   'Malay',
+    'mul':   'Multiple Languages',
+    'nl':    'Dutch',
+    'nor':   'Norwegian',
+    'por':   'Portuguese',
+    'rus':   'Russian',
+    'spa':   'Spanish',
+    'srp':   'Serbian',
+    'swe':   'Swedish',
+    'tur':   'Turkish',
+    'wel':   'Welsh',
+    'zho':   'Chinese',
+}
+
+GENRE_MAP = {
+    'Adult Fiction': 'Fiction',
+    'Science Fiction Fantasy': 'Fantasy',
+    'Science Fiction': 'Fiction',
+    'Historical Fiction': 'Fiction',
+    'Literary Fiction': 'Fiction',
+    'Mystery Thriller': 'Thriller',
 }
 
 
@@ -36,12 +67,7 @@ def train_model():
     common_genres = genre_counts[genre_counts >= 500].index
     books_filtered = books_exploded1[books_exploded1["genre"].isin(common_genres)].copy()
 
-    genre_map = {
-        'Adult Fiction': 'Fiction', 'Science Fiction Fantasy': 'Fantasy',
-        'Science Fiction': 'Fiction', 'Historical Fiction': 'Fiction',
-        'Literary Fiction': 'Fiction', 'Mystery Thriller': 'Thriller'
-    }
-    books_filtered["genre"] = books_filtered["genre"].apply(lambda x: genre_map.get(x, x))
+    books_filtered["genre"] = books_filtered["genre"].apply(lambda x: GENRE_MAP.get(x, x))
     books_filtered = books_filtered.drop_duplicates(subset=["Book Id", "genre"])
 
     books_filtered['year'] = pd.to_datetime(
@@ -66,27 +92,29 @@ def train_model():
     )
     model.fit(X, y)
 
-    return model, enc_genre, enc_pub, enc_lang, books_filtered
+    return model, enc_genre, enc_pub, enc_lang
 
 
 with st.spinner("Training model on first run, please wait..."):
-    model, encoder_genre, encoder_publisher, encoder_language, books_filtered = train_model()
+    model, encoder_genre, encoder_publisher, encoder_language = train_model()
 
-# Build language display options (label -> code)
-unique_codes = sorted(encoder_language.classes_)
+# Build readable genre options (deduplicated after genre_map consolidation)
+raw_genres = sorted(encoder_genre.classes_)
+genre_display = sorted(set(GENRE_MAP.get(g, g) for g in raw_genres))
+
+# Build readable language options (label -> one representative code)
 lang_options = {}
-for code in unique_codes:
+for code in sorted(encoder_language.classes_):
     label = LANG_MAP.get(code, code)
-    # Avoid duplicate display names overwriting each other
     if label not in lang_options:
         lang_options[label] = code
 lang_display = sorted(lang_options.keys())
 
 # --- Header ---
-st.markdown("# 📚 Fantasy Book Popularity Predictor")
+st.markdown("# 📚 Book Popularity Predictor")
 st.markdown(
-    "Predict how many Goodreads ratings a fantasy book is likely to receive, "
-    "based on its length, publisher, publication year, and language."
+    "Predict how many Goodreads ratings a book is likely to receive, "
+    "based on its genre, length, publisher, publication year, and language."
 )
 st.markdown("---")
 
@@ -96,6 +124,8 @@ st.markdown("### 📝 Book Details")
 col1, col2 = st.columns(2)
 
 with col1:
+    genre_label = st.selectbox("📖 Genre", genre_display,
+                               index=genre_display.index("Fantasy") if "Fantasy" in genre_display else 0)
     num_pages = st.number_input("📄 Number of Pages", min_value=1, max_value=5000, value=350,
                                 help="Total number of pages in the book")
     year = st.number_input("📅 Publication Year", min_value=1900, max_value=2025, value=2010,
@@ -112,7 +142,17 @@ st.markdown("")
 # --- Predict ---
 if st.button("🔮 Predict Popularity", use_container_width=True):
 
-    genre_enc = encoder_genre.transform(["Fantasy"])[0]
+    # Encode genre — use the raw label that the encoder knows
+    # If the selected display genre was consolidated, find its encoder class
+    genre_enc_label = genre_label
+    if genre_enc_label not in encoder_genre.classes_:
+        # Fall back to first matching class after reverse-mapping
+        for raw in encoder_genre.classes_:
+            if GENRE_MAP.get(raw, raw) == genre_label:
+                genre_enc_label = raw
+                break
+    genre_enc = encoder_genre.transform([genre_enc_label])[0]
+
     lang_code = lang_options[lang_label]
     language_enc = encoder_language.transform([lang_code])[0]
     publisher_enc = encoder_publisher.transform([publisher])[0]
@@ -129,7 +169,7 @@ if st.button("🔮 Predict Popularity", use_container_width=True):
     st.metric(label="Estimated Goodreads Ratings", value=f"{pred:,}")
 
     if pred < 1000:
-        st.info("🔍 Niche audience — likely to appeal to dedicated fantasy fans.")
+        st.info("🔍 Niche audience — likely to appeal to dedicated fans of the genre.")
     elif pred < 10000:
         st.success("📖 Moderate audience — solid readership expected.")
     elif pred < 100000:
@@ -145,11 +185,11 @@ with st.expander("ℹ️ About this model"):
     This app uses a **Random Forest Regressor** trained on 11,127 Goodreads books.
 
     **Features used:**
+    - Genre
     - Number of pages
     - Publication year
     - Publisher
     - Language
-    - Genre (fixed to Fantasy)
 
     **Model performance (nested cross-validation):**
     - R² = 0.7806 ± 0.0059 (log scale)
